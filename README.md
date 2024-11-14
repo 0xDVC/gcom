@@ -35,7 +35,11 @@ A simple command-line tool that helps you find and visualize commits across mult
    ```sh
    ./gcom
    ```
-
+## Resources
+- [Go Documentation](https://pkg.go.dev/std)
+- [5 Go Concurrency Patterns I wish I learned earlier](https://blog.stackademic.com/5-go-concurrency-patterns-i-wish-i-learned-earlier-bbfc02afc44b)
+- [go-concurrency-patterns](https://github.com/iamuditg/go-concurrency-patterns)
+- [Git Documentation](https://git-scm.com/docs)
 
 ## 📝 License
 

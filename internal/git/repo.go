@@ -71,7 +71,6 @@ func (r *Repo) parseCommitLine(line string) (Commit, error) {
 		return Commit{}, fmt.Errorf("failed to parse timestamp: %v", err)
 	}
 	
-	// Create and return the commit
 	return Commit{
 		Hash:      parts[0],
 		Author:    parts[1],
@@ -81,11 +80,40 @@ func (r *Repo) parseCommitLine(line string) (Commit, error) {
 }
 
 func (r *Repo) GetUnpushedCommits(since time.Time) ([]Commit, error) {
-	return r.GetCommits("HEAD --not --remotes", since)
+	cmd := exec.Command("git", "-C", r.Path, "rev-parse", "--abbrev-ref", "@{u}")
+	if err := cmd.Run(); err != nil {
+		return []Commit{}, nil 
+	}
+
+	cmd = exec.Command("git", "-C", r.Path, "log", "@{u}..", "--pretty=format:%H%x00%an%x00%ae%x00%at%x00%s")
+	output, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+
+	return r.parseCommits(string(output))
 }
 
 func (r *Repo) GetPushedCommits(since time.Time) ([]Commit, error) {
-	return r.GetCommits("--remotes", since)
+	args := []string{
+		"-C", r.Path,
+		"log",
+		"--remotes",
+		"--format=%H%x00%an%x00%at%x00%s",
+	}
+
+	if !since.IsZero() {
+		args = append(args, "--since", since.Format(time.RFC3339))
+	}
+
+	cmd := exec.Command("git", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("git log failed in %s: %v\nOutput: %s", 
+			r.Path, err, string(output))
+	}
+
+	return r.parseCommits(string(output))
 }
 
 func (r *Repo) GetAllCommits(since time.Time) ([]Commit, error) {

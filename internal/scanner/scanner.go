@@ -144,7 +144,6 @@ func (s *Scanner) calculateTimeRange() time.Time {
 func (s *Scanner) scanRepo(path string, since time.Time, commitChan chan<- git.Commit, errChan chan<- error) {
 	repo := &git.Repo{Path: path}
 	
-	// Get commits based on options
 	var commits []git.Commit
 	var err error
 	
@@ -157,7 +156,7 @@ func (s *Scanner) scanRepo(path string, since time.Time, commitChan chan<- git.C
 	}
 	
 	if err != nil {
-		errChan <- err
+		errChan <- fmt.Errorf("error scanning repo %s: %w", path, err)
 		return
 	}
 	
