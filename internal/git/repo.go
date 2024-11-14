@@ -112,4 +112,3 @@ func (r *Repo) GetAllCommits(since time.Time) ([]Commit, error) {
 	
 	return commits, nil
 }
-

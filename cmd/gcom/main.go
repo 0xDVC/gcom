@@ -28,7 +28,6 @@ func main() {
     flag.IntVar(&opts.Days, "d", 0, "Show commits from last n days")
     flag.IntVar(&opts.Days, "days", 0, "Show commits from last n days")
     
-    // Add custom usage message
     flag.Usage = func() {
         fmt.Fprintf(os.Stderr, "Usage of gcom:\n")
         fmt.Fprintf(os.Stderr, "\ngcom [flags...]\n\n")
@@ -42,10 +41,8 @@ func main() {
     
     flag.Parse()
 
-    // Initialize scanner
     s := scanner.New(opts)
 
-    // Scan for commits
     commits, err := s.Scan()
     if err != nil {
         fmt.Fprintf(os.Stderr, "Error scanning commits: %v\n", err)
