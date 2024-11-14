@@ -89,12 +89,27 @@ func (r *Repo) GetPushedCommits(since time.Time) ([]Commit, error) {
 }
 
 func (r *Repo) GetAllCommits(since time.Time) ([]Commit, error) {
-	cmd := exec.Command("git", "-C", r.Path, "log", "--since", since.Format(time.RFC3339), "--format=%H%x00%an%x00%at%x00%s")
-	output, err := cmd.Output()
-	if err != nil {
-		return nil, err
+	args := []string{
+		"-C", r.Path,
+		"log",
+		"--since", since.Format(time.RFC3339),
+		"--date=iso-strict",
+		"--format=%H%x00%an%x00%at%x00%s",
+		"--all",
 	}
 	
-	return r.parseCommits(string(output))
+	cmd := exec.Command("git", args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return nil, fmt.Errorf("git log failed in %s: %v\nOutput: %s", 
+			r.Path, err, string(output))
+	}
+	
+	commits, err := r.parseCommits(string(output))
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse commits from %s: %v", r.Path, err)
+	}
+	
+	return commits, nil
 }
 

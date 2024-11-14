@@ -35,6 +35,8 @@ func main() {
         os.Exit(1)
     }
 
-    // Display results
-    display.PrintCommits(commits)
+    if err := display.PrintCommits(commits); err != nil {
+        fmt.Fprintf(os.Stderr, "Error displaying commits: %v\n", err)
+        os.Exit(1)
+    }
 } 

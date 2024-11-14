@@ -1,8 +1,11 @@
 package scanner
 
 import (
+	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"sort"
 	"sync"
 	"time"
 
@@ -26,23 +29,26 @@ func New(opts Options) *Scanner {
 }
 
 func (s *Scanner) Scan() ([]git.Commit, error) {
-	repos := s.findRepos()
-	since := s.calculateTimeRange()
-	
-	commitChan := make(chan git.Commit)
-	errChan := make(chan error)
+	commitChan := make(chan git.Commit, 1000)
+	errChan := make(chan error, 100)
 	var wg sync.WaitGroup
 	
-	// Scan repositories concurrently
-	for _, repoPath := range repos {
-		wg.Add(1)
-		go func(path string) {
-			defer wg.Done()
-			s.scanRepo(path, since, commitChan, errChan)
-		}(repoPath)
+	repos, err := s.findRepos()
+	if err != nil {
+		return nil, err
 	}
 	
-	// Close channels when done
+	fmt.Printf("Found %d repositories\n", len(repos))
+	since := s.calculateTimeRange()
+	
+	for _, repo := range repos {
+		wg.Add(1)
+		go func(repoPath string) {
+			defer wg.Done()
+			s.scanRepo(repoPath, since, commitChan, errChan)
+		}(repo)
+	}
+	
 	go func() {
 		wg.Wait()
 		close(commitChan)
@@ -56,31 +62,65 @@ func (s *Scanner) Scan() ([]git.Commit, error) {
 		}
 	}
 	
+	select {
+	case err := <-errChan:
+		if err != nil {
+			return nil, err
+		}
+	default:
+	}
+	
+	sort.Slice(commits, func(i, j int) bool {
+		return commits[i].Date.After(commits[j].Date)
+	})
+	
 	return commits, nil
 }
 
-func (s *Scanner) findRepos() []string {
+func (s *Scanner) findRepos() ([]string, error) {
 	var repos []string
 	pwd, err := os.Getwd()
 	if err != nil {
-		return repos
+		return repos, fmt.Errorf("failed to get working directory: %v", err)
 	}
 
-	// Walk through all directories starting from current working directory
-	filepath.Walk(pwd, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil 
-		}
-		if info.IsDir() {
-			if _, err := os.Stat(filepath.Join(path, ".git")); err == nil {
+	fmt.Printf("Scanning for git repositories in: %s\n", pwd)
+
+	if isGitRepo(pwd) {
+		repos = append(repos, pwd)
+	}
+
+	entries, err := os.ReadDir(pwd)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read directory: %v", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			path := filepath.Join(pwd, entry.Name())
+			if isGitRepo(path) {
 				repos = append(repos, path)
-				return filepath.SkipDir 
 			}
 		}
-		return nil
-	})
+	}
 
-	return repos
+	if len(repos) == 0 {
+		return nil, fmt.Errorf("no git repositories found in %s", pwd)
+	}
+
+	return repos, nil
+}
+
+func isGitRepo(path string) bool {
+	gitDir := filepath.Join(path, ".git")
+	if _, err := os.Stat(gitDir); err == nil {
+		cmd := exec.Command("git", "-C", path, "rev-parse", "--git-dir")
+		if err := cmd.Run(); err == nil {
+			fmt.Printf("Found git repository: %s\n", path)
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Scanner) calculateTimeRange() time.Time {
