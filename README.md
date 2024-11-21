@@ -1,4 +1,12 @@
-# 🔍 gcom - Git Commit Observer & Manager
+```
+                    ______    ____    ____    _____  _____
+                  /  ___  | /  ___| /  __  \ |   _ || _   |
+                 |  (___) ||  (___ |  (__)  ||  | |  | |  |
+                  \_____  | \_____| \ ____ / |__| |__| |__|
+                  _____/  |
+                 |_______/
+```
+# 🔍 ```gcom``` - Git Commit Observer & Manager
 A simple command-line tool that helps you find and visualize commits across multiple Git repositories in your workspace. The idea came from missing a commit in a repo I was working on but forgot to push. I forgot both the name of the repo and the commit message. Does this happen to you? If it does, this was my solution. An overly engineered solution for a simple problem. An excuse to read golang docs and learn the language, with the good aid of gpt for illustrations and better understanding. Oh welp, it's a work-in-progress(WIP).
 
 ![Terminal Preview](./screenshot/Screenshot%202024-11-14%20at%2008.16.39.png)
